@@ -1,0 +1,148 @@
+{
+  "definitions": {}, 
+  "$schema": "http://json-schema.org/draft-06/schema#", 
+  "$id": "http://example.com/example.json", 
+  "type": "object", 
+  "properties": {
+    "pcNumberList": {
+      "$id": "/properties/pcNumberList", 
+      "type": "array", 
+      "items": {
+        "$id": "/properties/pcNumberList/items", 
+        "type": "object", 
+        "properties": {
+          "pcCode": {
+            "$id": "/properties/pcNumberList/items/properties/pcCode", 
+            "type": "string", 
+            "title": "The Pccode Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "12345"
+            ]
+          }, 
+          "pcCodeName": {
+            "$id": "/properties/pcNumberList/items/properties/pcCodeName", 
+            "type": "string", 
+            "title": "The Pccodename Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "1 Free Weekend Rental"
+            ]
+          }, 
+          "pcCodePoints": {
+            "$id": "/properties/pcNumberList/items/properties/pcCodePoints", 
+            "type": "string", 
+            "title": "The Pccodepoints Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "1200"
+            ]
+          }, 
+          "pcIsPeakPoints": {
+            "$id": "/properties/pcNumberList/items/properties/pcIsPeakPoints", 
+            "type": "string", 
+            "title": "The Pcispeakpoints Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "N"
+            ]
+          }, 
+          "destinationCountry": {
+            "$id": "/properties/pcNumberList/items/properties/destinationCountry", 
+            "type": "string", 
+            "title": "The Destinationcountry Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "US"
+            ]
+          }, 
+          "mappingSeqId": {
+            "$id": "/properties/pcNumberList/items/properties/mappingSeqId", 
+            "type": "string", 
+            "title": "The Mappingseqid Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "2"
+            ]
+          }, 
+          "mappingSortOrder": {
+            "$id": "/properties/pcNumberList/items/properties/mappingSortOrder", 
+            "type": "string", 
+            "title": "The Mappingsortorder Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "1"
+            ]
+          }, 
+          "listSedId": {
+            "$id": "/properties/pcNumberList/items/properties/listSedId", 
+            "type": "string", 
+            "title": "The Listsedid Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "2"
+            ]
+          }, 
+          "listCategory": {
+            "$id": "/properties/pcNumberList/items/properties/listCategory", 
+            "type": "string", 
+            "title": "The Listcategory Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "Weekend"
+            ]
+          }, 
+          "listDescriptionEnglishOnly": {
+            "$id": "/properties/pcNumberList/items/properties/listDescriptionEnglishOnly", 
+            "type": "string", 
+            "title": "The Listdescriptionenglishonly Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "1 Free Wknd"
+            ]
+          }, 
+          "dialectSeqId": {
+            "$id": "/properties/pcNumberList/items/properties/dialectSeqId", 
+            "type": "string", 
+            "title": "The Dialectseqid Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "2"
+            ]
+          }, 
+          "dialectDialect": {
+            "$id": "/properties/pcNumberList/items/properties/dialectDialect", 
+            "type": "string", 
+            "title": "The Dialectdialect Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "enUS"
+            ]
+          }, 
+          "dialectAdditionalDescription": {
+            "$id": "/properties/pcNumberList/items/properties/dialectAdditionalDescription", 
+            "type": "string", 
+            "title": "The Dialectadditionaldescription Schema.", 
+            "description": "An explanation about the purpose of this instance.", 
+            "default": "", 
+            "examples": [
+              "Get a free weekend car rental"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

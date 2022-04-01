@@ -1,0 +1,50 @@
+{
+  "definitions": {}, 
+  "$schema": "http://json-schema.org/draft-06/schema#", 
+  "$id": "http://example.com/example.json", 
+  "type": "object", 
+  "properties": {
+    "ErrorDetails": {
+      "$id": "/properties/ErrorDetails", 
+      "type": "object", 
+      "properties": {
+        "Error": {
+          "$id": "/properties/ErrorDetails/properties/Error", 
+          "type": "object", 
+          "properties": {
+            "Code": {
+              "$id": "/properties/ErrorDetails/properties/Error/properties/Code", 
+              "type": "string", 
+              "title": "The Code Schema.", 
+              "description": "An explanation about the purpose of this instance.", 
+              "default": "", 
+              "examples": [
+                ""
+              ]
+            }, 
+            "Type": {
+              "$id": "/properties/ErrorDetails/properties/Error/properties/Type", 
+              "type": "string", 
+              "title": "The Type Schema.", 
+              "description": "An explanation about the purpose of this instance.", 
+              "default": "", 
+              "examples": [
+                ""
+              ]
+            }, 
+            "Message": {
+              "$id": "/properties/ErrorDetails/properties/Error/properties/Message", 
+              "type": "string", 
+              "title": "The Message Schema.", 
+              "description": "An explanation about the purpose of this instance.", 
+              "default": "", 
+              "examples": [
+                ""
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

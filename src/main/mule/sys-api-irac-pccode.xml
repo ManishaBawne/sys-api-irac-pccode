@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <flow name="sys-api-irac-pccodeFlow">
+        <!--Migration WARN: Instead of using session variables in the flow, use variables.-->
+        <!--    For more information refer to:-->
+        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#session_variables-->
+        <!--<message-properties-transformer xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="HTTP Headers to Outbound Message Properties" scope="session">
+            <add-message-property key="correlationId" value="#[message.inboundProperties.correlationId]" />
+            <add-message-property key="systemId" value="#[message.inboundProperties.?systemId]" />
+            <add-message-property key="subSystemId" value="#[message.inboundProperties.?subSystemId]" />
+            <add-message-property key="dialect" value="#[message.inboundProperties.dialect]" />
+            <add-message-property key="brand" value="#[message.inboundProperties.brand]" />
+            <add-message-property key="clientId" value="#[message.inboundProperties.?clientId]" />
+            <add-message-property key="total_size" value="#[message.inboundProperties.total_size]" />
+        </message-properties-transformer>-->
+
+        <async doc:name="asyncLoggingStart">
+            <ee:transform doc:name="createauditLoggingVar">
+                <ee:variables>
+                    <ee:set-variable variableName="auditlog"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  uuid: vars.uuid default null,
+  "type": "HTTP",
+  flowStep: "start",
+  version: "1.0",
+  transactionId: vars.uuid,
+  message: "getPcCodeList",
+  eventName: "pcCodesFlow",
+  additionalKeys: {
+    correlationId: attributes.headers.correlationid
+  }
+}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref name="auditLoggingFramework" doc:name="auditLoggingFramework" />
+        </async>
+
+        <db:select config-ref="DB2_Generic_Configuration" doc:name="IRAC Dialect Query">
+            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+            <!--    For more information refer to:-->
+            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+            <db:sql><![CDATA[SELECT DIALECT,POS,LANGUAGE FROM DB2INST1. DIALECT_DETERMINATION_TABLE 
+WHERE CLIENT_ID = :cId AND  (POS = :pos AND LANGUAGE = :language) OR (POS = :pos1 AND LANGUAGE = :language) ORDER BY LANGUAGE,POS DESC WITH UR]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+	cId : "IRAC",
+	pos : substring(attributes.headers.dialect, 2, 4),
+	language :  substring(attributes.headers.dialect, 0, 2),
+	pos1 : "*"
+
+	
+}]]]></db:input-parameters>
+        </db:select>
+
+        <ee:transform doc:name="Transform Message" doc:id="1f9d38f4-927a-4c03-9c33-6e433cc40a77" >
+			<ee:message >
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="correlationId" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.headers.correlationId]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<set-variable value="#[attributes.headers.systemId]" doc:name="Set Variable" doc:id="734a76c5-4cbc-4e29-906d-c678d3974c3c" variableName="systemId"/>
+
+
+        <set-variable value="#[attributes.headers.subSystemId]" doc:name="Set Variable" doc:id="de74565b-bd39-4c2a-8f49-143a08d35710" variableName="subSystemId"/>
+
+
+        <set-variable value="#[attributes.headers.dialect]" doc:name="Set Variable" doc:id="b8484fe0-1555-4a83-b6d1-c774b61c8d1f" variableName="dialect"/>
+
+        <set-variable value="#[attributes.headers.brand]" doc:name="Set Variable" doc:id="cc79b63b-7f75-46fe-b2d9-3bf8e51e11f2" variableName="brand"/>
+
+
+        <set-variable value="#[attributes.headers.clientId]" doc:name="Set Variable" doc:id="94904a4c-8d4d-41ef-a7a5-0025020db7c0" variableName="clientId"/>
+
+
+        <set-variable value="#[attributes.headers.total_size]" doc:name="Set Variable" doc:id="8e4fcf49-9db1-42e7-aad2-09030e326dd6" variableName="total_size"/>
+
+
+        <choice doc:name="Choice">
+            <when expression="#[payload.size() != 0]">
+                <set-variable variableName="dialectVar" value="#[payload[0].DIALECT]" mimeType="application/java" doc:name="dialectVar" />
+                <scatter-gather doc:name="Scatter-Gather">
+                    <route>
+                        <db:select config-ref="DB2_Generic_Configuration" doc:name="Peak_IRAC Database">
+                            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+                            <!--    For more information refer to:-->
+                            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+                            <db:sql><![CDATA[SELECT A.SORT_ORDER,A.DESTINATION_COUNTRY,B.AWARDS_SEQ_ID,B.PEAK_PROMO_CODE,B.PEAK_POINTS,B.NON_PEAK_PROMO_CODE,B.NON_PEAK_POINTS,B.CATEGORY,B.DESCRIPTION_SOURCE,C.DESCRIPTION,C.ADDITIONAL_DESCRIPTION,C.DIALECT  FROM DB2INST1.HERTZ_AWARDS_LIST_MAPPING A INNER JOIN DB2INST1.HERTZ_AWARDS_LIST B ON A.AWARDS_SEQ_ID = B.AWARDS_SEQ_ID  INNER JOIN DB2INST1.HERTZ_AWARDS_LIST_DIALECT C ON B.AWARDS_SEQ_ID = C.AWARDS_SEQ_ID 
+WHERE DESTINATION_COUNTRY= :destinationCountry AND C.DIALECT= :dialect AND B.PEAK_POINTS <= :peakPoints ORDER BY B.PEAK_POINTS WITH UR]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	destinationCountry: vars.compatibility_inboundProperties.'http.query.params'.destinationCountry,
+	dialect: vars.dialectVar,
+	peakPoints: vars.compatibility_inboundProperties.'http.query.params'.currentRewardsBalance
+}]]]></db:input-parameters>
+                        </db:select>
+                    </route>
+                    <route>
+                        <db:select config-ref="DB2_Generic_Configuration" doc:name="Non_Peak IRAC Database">
+                            <!--Migration INFO: Streaming is enabled by default in Mule 4-->
+                            <!--    For more information refer to:-->
+                            <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-connectors-database#database_streaming-->
+                            <db:sql><![CDATA[SELECT A.SORT_ORDER,A.DESTINATION_COUNTRY,B.AWARDS_SEQ_ID,B.PEAK_PROMO_CODE,B.PEAK_POINTS,B.NON_PEAK_PROMO_CODE,B.NON_PEAK_POINTS,B.CATEGORY,B.DESCRIPTION_SOURCE,C.DESCRIPTION,C.ADDITIONAL_DESCRIPTION,C.DIALECT  FROM DB2INST1.HERTZ_AWARDS_LIST_MAPPING A INNER JOIN DB2INST1.HERTZ_AWARDS_LIST B ON A.AWARDS_SEQ_ID = B.AWARDS_SEQ_ID  INNER JOIN DB2INST1.HERTZ_AWARDS_LIST_DIALECT C ON B.AWARDS_SEQ_ID = C.AWARDS_SEQ_ID 
+WHERE DESTINATION_COUNTRY= :destinationCountry AND C.DIALECT= :dialect AND B.NON_PEAK_POINTS <= :nonPeakPoints ORDER BY B.NON_PEAK_POINTS WITH UR]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	destinationCountry: vars.compatibility_inboundProperties.'http.query.params'.destinationCountry,
+	dialect: vars.dialectVar,
+	nonPeakPoints: vars.compatibility_inboundProperties.'http.query.params'.currentRewardsBalance
+}]]]></db:input-parameters>
+                        </db:select>
+                    </route>
+                </scatter-gather>
+                <ee:transform doc:name="Object to JSON">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0 
+output application/json
+ ---   
+payload]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+                <set-variable variableName="ResPayload" value="#[payload]" doc:name="ResPayload">
+                    <!--Migration WARN: The MEL expression could not be migrated to a DataWeave expression.-->
+                    <!--    For more information refer to:-->
+                    <!--        * https://docs.mulesoft.com/mule-runtime/4.3/migration-mel-->
+                    <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#mel_expressions-->
+                    <!--        * https://blogs.mulesoft.com/dev/mule-dev/why-dataweave-main-expression-language-mule-4-->
+                </set-variable>
+                <choice doc:name="Choice">
+                    <when expression="#[sizeOf(vars.ResPayload) != 0]">
+                        <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                        <!--<message-properties-transformer xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="HTTP Headers to Outbound Message Properties">
+                            <add-message-property key="correlationId" value="#[sessionVars.correlationId]" />
+                            <add-message-property key="systemId" value="#[sessionVars.?systemId]" />
+                            <add-message-property key="subSystemId" value="#[sessionVars.?subSystemId]" />
+                            <add-message-property key="dialect" value="#[sessionVars.dialect]" />
+                            <add-message-property key="brand" value="#[sessionVars.brand]" />
+                            <add-message-property key="clientId" value="#[sessionVars.?clientId]" />
+                            <add-message-property key="total_size" value="#[sessionVars.total_size]" />
+                        </message-properties-transformer>-->
+                        <compatibility:set-property propertyName="correlationId" value="#[vars.correlationId]" />
+                        <compatibility:set-property propertyName="systemId" value="#[vars.systemId]" />
+                        <compatibility:set-property propertyName="subSystemId" value="#[vars.subSystemId]" />
+                        <compatibility:set-property propertyName="dialect" value="#[vars.dialect]" />
+                        <compatibility:set-property propertyName="brand" value="#[vars.brand]" />
+                        <compatibility:set-property propertyName="clientId" value="#[vars.clientId]" />
+                        <compatibility:set-property propertyName="total_size" value="#[vars.total_size]" />
+                    </when>
+                    <otherwise>
+                        <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                        <!--    For more information refer to:-->
+                        <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                        <!--<message-properties-transformer xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="HTTP Headers to Outbound Message Properties">
+                            <add-message-property key="correlationId" value="#[sessionVars.correlationId]" />
+                            <add-message-property key="systemId" value="#[sessionVars.?systemId]" />
+                            <add-message-property key="subSystemId" value="#[sessionVars.?subSystemId]" />
+                            <add-message-property key="dialect" value="#[sessionVars.dialect]" />
+                            <add-message-property key="brand" value="#[sessionVars.brand]" />
+                            <add-message-property key="clientId" value="#[sessionVars.?clientId]" />
+                            <add-message-property key="total_size" value="#[sessionVars.total_size]" />
+                            <add-message-property key="http.status" value="204" />
+                        </message-properties-transformer>-->
+                        <compatibility:set-property propertyName="correlationId" value="#[vars.correlationId]" />
+                        <compatibility:set-property propertyName="systemId" value="#[vars.systemId]" />
+                        <compatibility:set-property propertyName="subSystemId" value="#[vars.subSystemId]" />
+                        <compatibility:set-property propertyName="dialect" value="#[vars.dialect]" />
+                        <compatibility:set-property propertyName="brand" value="#[vars.brand]" />
+                        <compatibility:set-property propertyName="clientId" value="#[vars.clientId]" />
+                        <compatibility:set-property propertyName="total_size" value="#[vars.total_size]" />
+                        <compatibility:set-property propertyName="http.status" value="204" />
+                        <set-payload value="#['']" doc:name="Setting empty Payload" />
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <!--Migration WARN: Instead of using outbound properties in the flow, move the expression that sets the property into the XML attribute (such as 'method') of the operation or listener that accepts the expression.-->
+                <!--    For more information refer to:-->
+                <!--        * https://github.com/mulesoft/mule-migration-assistant/blob/master/docs/user-docs/migration-tool-post-mig.adoc#outbound_properties-->
+                <!--<message-properties-transformer xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" doc:name="HTTP Headers to Outbound Message Properties">
+                    <add-message-property key="correlationId" value="#[sessionVars.correlationId]" />
+                    <add-message-property key="systemId" value="#[sessionVars.?systemId]" />
+                    <add-message-property key="subSystemId" value="#[sessionVars.?subSystemId]" />
+                    <add-message-property key="dialect" value="#[sessionVars.dialect]" />
+                    <add-message-property key="brand" value="#[sessionVars.brand]" />
+                    <add-message-property key="clientId" value="#[sessionVars.?clientId]" />
+                    <add-message-property key="total_size" value="#[sessionVars.total_size]" />
+                    <add-message-property key="http.status" value="204" />
+                </message-properties-transformer>-->
+                <compatibility:set-property propertyName="correlationId" value="#[vars.correlationId]" />
+                <compatibility:set-property propertyName="systemId" value="#[vars.systemId]" />
+                <compatibility:set-property propertyName="subSystemId" value="#[vars.subSystemId]" />
+                <compatibility:set-property propertyName="dialect" value="#[vars.dialect]" />
+                <compatibility:set-property propertyName="brand" value="#[vars.brand]" />
+                <compatibility:set-property propertyName="clientId" value="#[vars.clientId]" />
+                <compatibility:set-property propertyName="total_size" value="#[vars.total_size]" />
+                <compatibility:set-property propertyName="http.status" value="204" />
+                <set-payload value="#['']" doc:name="Setting Empty Payload" />
+            </otherwise>
+        </choice>
+
+        <async doc:name="asyncLoggingEnd">
+            <ee:transform doc:name="createauditLoggingVar">
+                <ee:variables>
+                    <ee:set-variable variableName="auditlog"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  uuid: vars.uuid default null,
+  "type": "HTTP",
+  flowStep: "end",
+  version: "1.0",
+  transactionId: vars.uuid,
+  message: "retrievedPcCodeList",
+  eventName: "pcCodesFlow",
+  additionalKeys: {
+    correlationId: attributes.headers.correlationId
+  }
+}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref name="auditLoggingFramework" doc:name="auditLoggingFramework" />
+        </async>
+
+        <error-handler ref="messagingChoiceExceptionStrategy" doc:name="Reference Exception Strategy" />
+
+    </flow>
+
+</mule>

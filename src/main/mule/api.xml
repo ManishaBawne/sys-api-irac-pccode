@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+   
+	<flow name="api-main">
+        <http:listener config-ref="HTTP_Listener_config" path="${api.path}" doc:name="HTTP">
+            <http:response statusCode="#[vars.httpStatus default migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {} ++ migration::HttpListener::httpListenerResponseHeaders(vars)]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {} ++ migration::HttpListener::httpListenerResponseHeaders(vars)]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <set-variable value="#[if(attributes.headers.uuid == null) uuid() else attributes.headers.uuid]" doc:name="Set Variable uuid" doc:id="65325760-f6db-4b58-8a3b-8bc3e5b1b801" variableName="uuid"/>
+
+        <set-variable value="${db2.irac.jdbc.url}" doc:name="Set Variable iracDatabaseHost" doc:id="7e6d6f6a-fd61-4fac-91c6-bf8c22bef4ae" variableName="iracDatabaseHost"/>
+
+        <os:retrieve objectStore="ObjectStore__Connector" key="iracDbHost" target="iracDatabaseHost" doc:name="ObjectStore">
+            <os:default-value><![CDATA[#[vars.iracDatabaseHost]]]></os:default-value>
+        </os:retrieve>
+
+        <apikit:router xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" config-ref="api-config" doc:name="APIkit Router" />
+
+        <error-handler ref="apiChoiceExceptionStrategy" doc:name="Reference Exception Strategy" />
+
+    </flow>
+
+    <flow name="api-console">
+        <http:listener config-ref="HTTP_Listener_config" path="${api.console.path}" doc:name="HTTP">
+            <http:response statusCode="#[migration::HttpListener::httpListenerResponseSuccessStatusCode(vars)]">
+               
+                <http:headers><![CDATA[#[migration::HttpListener::httpListenerResponseHeaders(vars)]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.statusCode default migration::HttpListener::httpListenerResponseErrorStatusCode(vars)]">
+               
+                <http:headers><![CDATA[#[migration::HttpListener::httpListenerResponseHeaders(vars)]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+
+        <set-variable variableName="env" value="${mule.env}" doc:name="env" />
+
+        <choice doc:name="Choice">
+            <when expression='#[vars.env == "prod"]'>
+                
+                <apikit:console xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" config-ref="api-config" doc:name="APIkit Console" />
+            </when>
+            <otherwise>
+                <logger level="DEBUG" doc:name="Logger" message="No console will be displayed in production environment" />
+            </otherwise>
+        </choice>
+
+    </flow>
+
+</mule>

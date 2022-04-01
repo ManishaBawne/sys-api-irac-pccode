@@ -1,0 +1,94 @@
+#%RAML 1.0
+title: System API for IRAC PC cocdes 
+baseUri: https://mocksvc.mulesoft.com/mocks/9bc0d259-e47c-4935-a21c-81c0673fcb87 # baseUri: https://mocksvc.mulesoft.com/mocks/881c319b-3783-4c7a-9634-fa3e4b3de484 # baseUri:
+version: 1.0Dev
+documentation: 
+  - title: Policy
+    content: |
+      The scope of this integration is to connect Digital to DB2 to get  IRAC PC cocdes  Details and Listing. This is used to retrieve Policy details
+  - title: Getting Started
+    content: !include..api/docs/getting_started.md  
+
+protocols: [HTTP,HTTPS]
+mediaType: [ application/json ]
+types:
+ pcCodesResponse: !include..api/schemas/sys_api_pccodes_response.schema
+ errors:  !include..api/error/errors.schema
+traits: 
+  client-id-required:
+   headers: 
+     client_id:
+      type: string
+     client_secret:
+      type: string
+  system-headers:
+   headers:
+     correlationId: 
+      displayName: correlationId
+      type: string
+      required: true
+      minLength: 24
+      maxLength: 48 
+     clientId:
+      type: string
+      required: false
+      maxLength: 25  
+     brand:
+      displayName: brand
+      type: string
+      required: true
+      maxLength: 10
+     systemId:
+      displayName: systemId
+      type: string
+      required: true
+      maxLength: 10
+     subSystemId:
+      displayName: subSystemId
+      type: string
+      required: false
+      maxLength: 10
+     dialect:
+      displayName: dialect
+      type: string
+      pattern: "[a-z|A-Z|-]+"
+      required: true
+      minLength: 4
+      maxLength: 4
+     total_size:
+      displayName: total_size
+      required: true
+      type: integer
+      default: 1
+  app-parasms:
+   queryParameters: 
+    currentRewardsBalance: 
+      displayName: CurrentRewardsBalance
+      type: string
+      required: true
+    destinationCountry:
+      displayName: DestinationCountry
+      type: string
+      required: true
+      minLength: 2
+      maxLength: 2
+
+/getPcCodes:
+   is: [client-id-required,system-headers,app-parasms]
+   get: 
+    responses: 
+      200:
+       body:
+        application/json:
+          schema: pcCodesResponse
+          example: !include..api/types/sys_api_pccodes_response.json
+      400:
+       body:
+        application/json:
+         schema: errors
+      500:
+       body:
+        application/json:
+         schema: errors 
+     
+   

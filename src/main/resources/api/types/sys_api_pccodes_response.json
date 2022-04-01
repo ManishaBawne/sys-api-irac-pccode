@@ -1,0 +1,49 @@
+{
+  "pcNumberList": [
+    {
+      "pcCode": "12345",
+      "pcCodeName": "1 Free Weekend Rental",
+      "pcCodePoints": "1200",
+      "pcIsPeakPoints": "N",
+      "destinationCountry": "US",
+      "mappingSeqId": "2",
+      "mappingSortOrder": "1",
+      "listSedId": "2",
+      "listCategory": "Weekend",
+      "listDescriptionEnglishOnly": "1 Free Wknd",
+      "dialectSeqId": "2",
+      "dialectDialect": "enUS",
+      "dialectAdditionalDescription": "Get a free weekend car rental"
+    },
+    {
+      "pcCode": "12345",
+      "pcCodeName": "1 Free Weekend Rental",
+      "pcCodePoints": "1200",
+      "pcIsPeakPoints": "N",
+      "destinationCountry": "US",
+      "mappingSeqId": "2",
+      "mappingSortOrder": "1",
+      "listSedId": "2",
+      "listCategory": "Weekend",
+      "listDescriptionEnglishOnly": "1 Free Wknd",
+      "dialectSeqId": "2",
+      "dialectDialect": "enUS",
+      "dialectAdditionalDescription": "Get a free weekend car rental"
+    },
+    {
+      "pcCode": "12345",
+      "pcCodeName": "1 Free Weekend Rental",
+      "pcCodePoints": "1200",
+      "pcIsPeakPoints": "Y",
+      "destinationCountry": "US",
+      "mappingSeqId": "2",
+      "mappingSortOrder": "1",
+      "listSedId": "2",
+      "listCategory": "Weekend",
+      "listDescriptionEnglishOnly": "1 Free Wknd",
+      "dialectSeqId": "2",
+      "dialectDialect": "enUS",
+      "dialectAdditionalDescription": "Get a free weekend car rental"
+    }
+  ]
+}

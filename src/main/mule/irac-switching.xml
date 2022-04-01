@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:compatibility="http://www.mulesoft.org/schema/mule/compatibility" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd http://www.mulesoft.org/schema/mule/compatibility http://www.mulesoft.org/schema/mule/compatibility/current/mule-compatibility.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+    <flow name="irac-switchingFlow">
+        <scheduler doc:name="Trigger the flow">
+            <scheduling-strategy>
+                <fixed-frequency frequency="${irac.database.switching.frequency}" />
+            </scheduling-strategy>
+        </scheduler>
+
+        <logger level="DEBUG" doc:name="Flow Start Log" message="IRAC_Switching flow got triggered" category="com.hertz.sys.api.irac" />
+
+        <set-variable value="#[uuid()]" doc:name="Set Variable" doc:id="db01d4d2-3002-4480-80fa-d88f27235bd6" variableName="uuid"/>
+
+        <validation:is-true message="Switching Is Not Enabled" doc:name="Switch Enabled Validation" />
+
+        <async doc:name="startAsyncLogging">
+            <ee:transform doc:name="createauditLoggingVar">
+                <ee:variables>
+                    <ee:set-variable variableName="auditlog"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  uuid: vars.uuid default null,
+  "type": "POLL",
+  flowStep: "start",
+  version: "1.0",
+  transactionId: vars.uuid default null,
+  transactionType: "iracSwitching",
+  message: "pollTriggered",
+  eventName: "iracSwitchingFlow",
+  additionalKeys: {}
+}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref name="auditLoggingFramework" doc:name="auditLoggingFramework" />
+        </async>
+
+        <until-successful maxRetries="${irac.switching.until.successful.max.retries}" doc:name="Until Successful" millisBetweenRetries="${irac.switching.until.successful.time.bw.retries}">
+            
+            <http:request config-ref="HTTP_Irac_Database_Switching_Request_Configuration" path="${irac.live.center.http.path}" method="GET" doc:name="Call IRAC Service">
+                
+                <http:query-params><![CDATA[#[{'fqdn' : 'bmorigin-www.hertz.com.center.hertz.com'}]]]></http:query-params>
+            </http:request>
+            <logger message="#[write(payload) as String]" level="INFO" doc:name="Logger" />
+        </until-successful>
+
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload>%dw 2.0
+output application/java  
+---
+payload.centerStatus.center.@shortname</ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <choice doc:name="Choice">
+            <when expression="#[payload == 'DC']">
+                <set-variable variableName="iracDbHost" value="${db2.irac.jdbc.url.dc1}" doc:name="iracDbHost Variable" />
+            </when>
+            <when expression="#[payload == 'DC2']">
+                <set-variable variableName="iracDbHost" value="${db2.irac.jdbc.url.dc2}" doc:name="iracDbHost Variable" />
+            </when>
+            <when expression="#[payload == 'RC']">
+                <set-variable variableName="iracDbHost" value="${db2.irac.jdbc.url.rc}" doc:name="iracDbHost Variable" />
+            </when>
+            <otherwise>
+                <set-payload value="#[null]" doc:name="set NulI Payload" />
+            </otherwise>
+        </choice>
+
+        <async doc:name="endAsyncLogging">
+            <ee:transform doc:name="createauditLoggingVar">
+                <ee:variables>
+                    <ee:set-variable variableName="auditlog"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  uuid: vars.uuid default null,
+  "type": "HTTP",
+  flowStep: "end",
+  version: "1.0",
+  transactionId: vars.uuid default null,
+  transactionType: "iracSwitching",
+  message: "beforeObjectStoreInsert",
+  eventName: "iracSwitchingFlow",
+  additionalKeys: {
+    url: payload
+  }
+}]]></ee:set-variable>
+                </ee:variables>
+            </ee:transform>
+            <flow-ref name="auditLoggingFramework" doc:name="auditLoggingFramework" />
+        </async>
+
+        <ee:cache cachingStrategy-ref="IRAC_Switching_Caching_Strategy" filterExpression="#[payload != null]" doc:name="Cache Live IRAC Host">
+            <os:store objectStore="ObjectStore__Connector" key="iracDbHost" doc:name="ObjectStore">
+                <os:value><![CDATA[#[vars.iracDbHost]]]></os:value>
+            </os:store>
+        </ee:cache>
+
+        <error-handler>
+            <on-error-continue doc:name="On Error Continue">
+                <set-variable variableName="rootCauseMessage" value="#[error.exception]" doc:name="exceptionMessage">
+                   
+                </set-variable>
+                <async doc:name="endAsyncLogging">
+                    <ee:transform doc:name="createauditLoggingVar">
+                        <!--Migration ERROR: Custom types defined in Studio 6 are not migrated to Studio 7.-->
+                        <ee:variables>
+                            <ee:set-variable variableName="auditlog"><![CDATA[%dw 2.0
+output application/java  
+---
+{
+  uuid: vars.uuid default null,
+  "type": "HTTP",
+  flowStep: "error",
+  version: "1.0",
+  transactionId: vars.uuid default null,
+  transactionType: "iracSwitching",
+  message: "inCatchExceptionStrategy",
+  eventName: "iracSwitchingFlow",
+  additionalKeys: {
+    url: payload,
+    rootCauseMessage: vars.rootCauseMessage
+  }
+}]]></ee:set-variable>
+                        </ee:variables>
+                    </ee:transform>
+                    <flow-ref name="auditLoggingFramework" doc:name="auditLoggingFramework" />
+                </async>
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+
+</mule>
